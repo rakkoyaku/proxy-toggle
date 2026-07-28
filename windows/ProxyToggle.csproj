@@ -17,6 +17,8 @@
     <SelfContained>false</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <!-- Keep symbols inside the .exe so the install directory stays a single file. -->
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
 
 </Project>
