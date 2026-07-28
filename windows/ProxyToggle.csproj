@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>ProxyToggle</AssemblyName>
+    <RootNamespace>ProxyToggle</RootNamespace>
+    <Version>1.0.0</Version>
+    <Product>ProxyToggle</Product>
+    <AssemblyTitle>ProxyToggle</AssemblyTitle>
+    <!-- Single .exe; the .NET Desktop Runtime is expected on the machine.
+         Pass -SelfContained to build.ps1 to bundle it instead. -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>false</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+
+</Project>

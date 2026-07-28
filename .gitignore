@@ -1,4 +1,11 @@
-Sources/HelperSource.swift
+# macOS
+macos/Sources/HelperSource.swift
 *.app/
 .DS_Store
+
+# Windows / .NET
+bin/
+obj/
+*.user
+
 build/
