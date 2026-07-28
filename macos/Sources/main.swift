@@ -5,7 +5,6 @@
 
 import AppKit
 import SystemConfiguration
-import ServiceManagement
 
 let helperPath  = "/usr/local/bin/proxyctl"
 let sudoersPath = "/etc/sudoers.d/proxyctl"
@@ -186,12 +185,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
         menu.addItem(withTitle: "ネットワーク設定を開く…",
                      action: #selector(openSettings), keyEquivalent: "").target = self
-        if #available(macOS 13.0, *) {
-            let login = NSMenuItem(title: "ログイン時に起動", action: #selector(toggleLoginItem), keyEquivalent: "")
-            login.target = self
-            login.state = SMAppService.mainApp.status == .enabled ? .on : .off
-            menu.addItem(login)
+
+        let login = NSMenuItem(title: "ログイン時に起動", action: #selector(toggleLoginItem), keyEquivalent: "")
+        login.target = self
+        switch LoginItem.state {
+        case .enabled:
+            login.state = .on
+        case .requiresApproval:
+            login.state = .mixed
+            login.title = "ログイン時に起動（システム設定で承認が必要）"
+        case .disabled:
+            login.state = .off
         }
+        menu.addItem(login)
         menu.addItem(.separator())
         menu.addItem(withTitle: "終了", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
 
@@ -205,9 +211,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func toggleLoginItem() {
-        if #available(macOS 13.0, *) {
-            let service = SMAppService.mainApp
-            if service.status == .enabled { try? service.unregister() } else { try? service.register() }
+        do {
+            try LoginItem.toggle()
+        } catch {
+            showAlert(title: "自動起動の設定を変更できませんでした", message: error.localizedDescription)
+            return
+        }
+
+        // macOS 13+ can accept the registration and still leave it switched off until the
+        // user approves it, so say so instead of showing a checkmark that does nothing.
+        guard LoginItem.state == .requiresApproval else { return }
+        showAlert(title: "システム設定での承認が必要です",
+                  message: "システム設定 → 一般 → ログイン項目 で ProxyToggle をオンにしてください。",
+                  openLoginItems: true)
+    }
+
+    private func showAlert(title: String, message: String, openLoginItems: Bool = false) {
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = message
+        alert.alertStyle = .warning
+        if openLoginItems {
+            alert.addButton(withTitle: "ログイン項目を開く")
+            alert.addButton(withTitle: "閉じる")
+        }
+        let response = alert.runModal()
+        if openLoginItems, response == .alertFirstButtonReturn,
+           let url = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension") {
+            NSWorkspace.shared.open(url)
         }
     }
 }

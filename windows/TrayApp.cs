@@ -26,7 +26,7 @@ internal sealed class TrayApp : ApplicationContext
         _toggleItem = new ToolStripMenuItem();
         _toggleItem.Click += (_, _) => Toggle();
         _startupItem = new ToolStripMenuItem("ログイン時に起動") { CheckOnClick = false };
-        _startupItem.Click += (_, _) => { StartupEntry.Toggle(); _startupItem.Checked = StartupEntry.IsEnabled; };
+        _startupItem.Click += (_, _) => ToggleStartup();
 
         var settingsItem = new ToolStripMenuItem("プロキシ設定を開く…");
         settingsItem.Click += (_, _) => OpenProxySettings();
@@ -61,7 +61,24 @@ internal sealed class TrayApp : ApplicationContext
         _poll.Tick += (_, _) => Refresh();
         _poll.Start();
 
+        // Keep an existing logon entry pointing at wherever this copy now lives.
+        try { StartupEntry.RepairIfStale(); } catch { /* best effort */ }
+
         Refresh();
+    }
+
+    private void ToggleStartup()
+    {
+        try
+        {
+            StartupEntry.Toggle();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"自動起動の設定を変更できませんでした。\n\n{ex.Message}",
+                            "ProxyToggle", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+        _startupItem.Checked = StartupEntry.IsEnabled;
     }
 
     private void Toggle()

@@ -56,6 +56,30 @@
       </Component>
     </ComponentGroup>
 
+    <!--
+      Run-at-logon is a user preference the app owns (tray menu, or its startup CLI), so
+      MSI deliberately does not own the registry value: letting a component own it would
+      make every upgrade reset the preference. Instead, drive the app's own CLI.
+
+      Opt in at install time with: msiexec /i ProxyToggle.msi STARTUP=1
+    -->
+    <Property Id="STARTUP" Secure="yes" />
+
+    <CustomAction Id="EnableStartup" FileRef="ProxyToggleExe" ExeCommand="--startup on"
+                  Execute="deferred" Impersonate="yes" Return="ignore" />
+    <!-- Removing the value on uninstall stops a stale entry from pointing at the deleted
+         .exe. UPGRADINGPRODUCTCODE excludes the removal half of a major upgrade, which
+         would otherwise silently turn the preference off on every update. -->
+    <CustomAction Id="DisableStartup" FileRef="ProxyToggleExe" ExeCommand="--startup off"
+                  Execute="deferred" Impersonate="yes" Return="ignore" />
+
+    <InstallExecuteSequence>
+      <Custom Action="EnableStartup" After="InstallFiles"
+              Condition="STARTUP=1 AND NOT Installed" />
+      <Custom Action="DisableStartup" Before="RemoveFiles"
+              Condition="REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+    </InstallExecuteSequence>
+
     <ComponentGroup Id="Shortcuts" Directory="ShortcutFolder">
       <Component Id="StartMenuShortcut" Guid="b41e7d20-8c65-4f39-a0d2-7e5b1c93f8a4">
         <Shortcut Id="StartMenuProxyToggle"

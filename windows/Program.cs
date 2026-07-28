@@ -7,7 +7,7 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        if (args.Length > 0) return RunCommand(args[0]);
+        if (args.Length > 0) return RunCommand(args[0], args.Length > 1 ? args[1] : null);
 
         using var mutex = new Mutex(initiallyOwned: true, MutexName, out var isFirstInstance);
         if (!isFirstInstance)
@@ -26,9 +26,9 @@ internal static class Program
 
     /// <summary>
     /// Headless mode, so the same binary is scriptable:
-    /// ProxyToggle.exe --status | --on | --off | --toggle
+    /// ProxyToggle.exe --status | --on | --off | --toggle | --startup [on|off]
     /// </summary>
-    private static int RunCommand(string arg)
+    private static int RunCommand(string arg, string? option)
     {
         var attached = AttachToParentConsole();
         try
@@ -50,8 +50,11 @@ internal static class Program
                 case "toggle":
                     Console.WriteLine(ProxySettings.Toggle() ? "on" : "off");
                     return 0;
+                case "startup":
+                    return RunStartupCommand(option);
                 default:
-                    Console.Error.WriteLine("usage: ProxyToggle.exe [--status|--on|--off|--toggle]");
+                    Console.Error.WriteLine(
+                        "usage: ProxyToggle.exe [--status|--on|--off|--toggle|--startup [on|off]]");
                     return 2;
             }
         }
@@ -59,6 +62,27 @@ internal static class Program
         {
             Console.Out.Flush();
             if (attached) NativeMethods.FreeConsole();
+        }
+    }
+
+    private static int RunStartupCommand(string? option)
+    {
+        switch (option?.TrimStart('-', '/').ToLowerInvariant())
+        {
+            case null or "status":
+                Console.WriteLine(StartupEntry.IsEnabled ? "on" : "off");
+                return 0;
+            case "on":
+                StartupEntry.Enable();
+                Console.WriteLine("on");
+                return 0;
+            case "off":
+                StartupEntry.Disable();
+                Console.WriteLine("off");
+                return 0;
+            default:
+                Console.Error.WriteLine("usage: ProxyToggle.exe --startup [on|off]");
+                return 2;
         }
     }
 

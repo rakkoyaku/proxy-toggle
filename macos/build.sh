@@ -26,7 +26,7 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS"
 
 swiftc -O -o "$APP/Contents/MacOS/$APP_NAME" \
-  Sources/main.swift Sources/HelperSource.swift \
+  Sources/*.swift \
   -framework AppKit -framework SystemConfiguration -framework ServiceManagement
 
 cat > "$APP/Contents/Info.plist" <<'PLIST'

@@ -27,8 +27,8 @@ MSI は **per-user インストーラー**なので UAC は出ません。`%LOCA
 に入り、標準ユーザーのままインストール／アンインストールできます。サイレントインストールも可能です。
 
 ```powershell
-msiexec /i ProxyToggle-1.0.0-win-x64.msi /qn
-msiexec /x ProxyToggle-1.0.0-win-x64.msi /qn
+msiexec /i ProxyToggle-1.0.1-win-x64.msi /qn
+msiexec /x ProxyToggle-1.0.1-win-x64.msi /qn
 ```
 
 `.NET ランタイム: 必要` の配布物には [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) が要ります。
@@ -36,7 +36,7 @@ msiexec /x ProxyToggle-1.0.0-win-x64.msi /qn
 `SHA256SUMS.txt` で検証する場合:
 
 ```powershell
-(Get-FileHash .\ProxyToggle-1.0.0-win-x64.msi -Algorithm SHA256).Hash.ToLower()
+(Get-FileHash .\ProxyToggle-1.0.1-win-x64.msi -Algorithm SHA256).Hash.ToLower()
 ```
 
 > 署名証明書を持っていないため、実行ファイルと MSI は**コード署名されていません**。
@@ -75,8 +75,20 @@ cd proxy-toggle\windows
 バージョンは `ProxyToggle.csproj` の `<Version>` が使われます（`-Version` で上書き可）。
 MSI の定義は [`installer/ProxyToggle.wxs`](installer/ProxyToggle.wxs) です。
 
-ログイン時の自動起動は、トレイアイコンの右クリックメニューから切り替えられます
-（`HKCU\...\CurrentVersion\Run` に登録されます）。
+### ログイン時の自動起動
+
+トレイアイコンの右クリックメニュー →「ログイン時に起動」で切り替えられます
+（`HKCU\Software\Microsoft\Windows\CurrentVersion\Run` に登録。昇格は不要です）。
+
+インストール時に有効化しておくこともできます。
+
+```powershell
+msiexec /i ProxyToggle-1.0.1-win-x64.msi STARTUP=1 /qn
+```
+
+- 自動起動の設定は**アプリ側の設定**として扱われるため、MSI のアップグレードでリセットされません
+- アンインストール時には削除されるので、消えた exe を指す迷子のエントリは残りません
+- アプリを別の場所に移動した場合、起動時に登録先パスを現在の場所へ貼り直します
 
 > **Windows 11 の注意**: 新しいトレイアイコンは既定でオーバーフロー（`^` の中）に隠れます。
 > 常時表示するには 設定 → 個人用設定 → タスクバー → 「タスク バー コーナーのオーバーフロー」で
@@ -87,10 +99,13 @@ MSI の定義は [`installer/ProxyToggle.wxs`](installer/ProxyToggle.wxs) です
 同じ実行ファイルがスクリプトからも使えます。
 
 ```powershell
-ProxyToggle.exe --status    # off<TAB>127.0.0.1:8080<TAB><local>
+ProxyToggle.exe --status        # off<TAB>127.0.0.1:8080<TAB><local>
 ProxyToggle.exe --on
 ProxyToggle.exe --off
 ProxyToggle.exe --toggle
+ProxyToggle.exe --startup       # on / off
+ProxyToggle.exe --startup on
+ProxyToggle.exe --startup off
 ```
 
 GUI サブシステムの実行ファイルなので、PowerShell から `&` で呼ぶと **完了を待たずに次へ進みます**。
