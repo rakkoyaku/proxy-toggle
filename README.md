@@ -33,6 +33,11 @@ macOS はプロキシ設定の変更に root 権限が必要なため、初回�
 
 ## Windows
 
+[Releases](https://github.com/rakkoyaku/proxy-toggle/releases) から MSI / ZIP をダウンロードしてください。
+MSI は per-user インストーラーなので **UAC は出ません**。
+
+ソースからビルドする場合:
+
 ```powershell
 git clone https://github.com/rakkoyaku/proxy-toggle.git
 cd proxy-toggle\windows

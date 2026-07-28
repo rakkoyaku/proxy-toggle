@@ -7,5 +7,9 @@ macos/Sources/HelperSource.swift
 bin/
 obj/
 *.user
+*.wixpdb
+
+# release artifacts
+dist/
 
 build/

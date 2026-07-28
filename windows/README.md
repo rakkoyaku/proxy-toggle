@@ -13,13 +13,43 @@
 - **管理者権限は不要**（設定はすべて `HKEY_CURRENT_USER` 配下）
 - 設定アプリや他ツールから変更された場合も 1.5 秒以内に表示が追従します
 
-## 必要なもの
+## インストール
+
+[Releases](https://github.com/rakkoyaku/proxy-toggle/releases) から選んでください。
+
+| 配布物 | 中身 | .NET ランタイム |
+| --- | --- | --- |
+| `ProxyToggle-x.y.z-win-x64.msi` | インストーラー。スタートメニューに登録され「アプリと機能」からアンインストールできる | 必要 |
+| `ProxyToggle-x.y.z-win-x64-portable.zip` | exe 1 個。展開して実行するだけ | 必要 |
+| `ProxyToggle-x.y.z-win-x64-selfcontained.zip` | ランタイム同梱版（約 65 MB） | 不要 |
+
+MSI は **per-user インストーラー**なので UAC は出ません。`%LOCALAPPDATA%\Programs\ProxyToggle`
+に入り、標準ユーザーのままインストール／アンインストールできます。サイレントインストールも可能です。
+
+```powershell
+msiexec /i ProxyToggle-1.0.0-win-x64.msi /qn
+msiexec /x ProxyToggle-1.0.0-win-x64.msi /qn
+```
+
+`.NET ランタイム: 必要` の配布物には [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) が要ります。
+
+`SHA256SUMS.txt` で検証する場合:
+
+```powershell
+(Get-FileHash .\ProxyToggle-1.0.0-win-x64.msi -Algorithm SHA256).Hash.ToLower()
+```
+
+> 署名証明書を持っていないため、実行ファイルと MSI は**コード署名されていません**。
+> ダウンロード時に SmartScreen の警告が出ます（「詳細情報」→「実行」で進めます）。
+> 気になる場合はソースからビルドしてください。
+
+## 必要なもの（ビルドする場合）
 
 - Windows 10 / 11
-- [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)（`-SelfContained` でビルドすれば不要）
-- ビルドする場合のみ .NET 8 SDK
+- .NET 8 SDK
+- MSI を作る場合のみ WiX 5: `dotnet tool install --global wix`
 
-## ビルドとインストール
+## ソースからビルド
 
 ```powershell
 git clone https://github.com/rakkoyaku/proxy-toggle.git
@@ -34,6 +64,16 @@ cd proxy-toggle\windows
 | `-Dest <path>` | インストール先を変更 |
 | `-SelfContained` | .NET ランタイムを同梱（サイズは大きくなるがランタイム不要） |
 | `-Run` | ビルド後に起動 |
+
+### リリース用パッケージを作る
+
+```powershell
+.\pack.ps1
+```
+
+`dist\` に MSI・portable zip・selfcontained zip・`SHA256SUMS.txt` が出力されます。
+バージョンは `ProxyToggle.csproj` の `<Version>` が使われます（`-Version` で上書き可）。
+MSI の定義は [`installer/ProxyToggle.wxs`](installer/ProxyToggle.wxs) です。
 
 ログイン時の自動起動は、トレイアイコンの右クリックメニューから切り替えられます
 （`HKCU\...\CurrentVersion\Run` に登録されます）。

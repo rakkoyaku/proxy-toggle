@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Per-user installer: the app only ever writes to HKCU, so the MSI installs into
+  %LOCALAPPDATA%\Programs and never triggers UAC.
+  Build via ..\pack.ps1, which supplies the Version preprocessor variable.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <Package Name="ProxyToggle"
+           Manufacturer="rakkoyaku"
+           Version="$(Version)"
+           UpgradeCode="8f3d9c41-6b2e-4a57-9f0d-1c7a5e8b3d62"
+           Scope="perUser"
+           Compressed="yes"
+           Language="1041"
+           Codepage="932">
+
+    <SummaryInformation Description="Tray switch for the Windows system proxy" />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <MajorUpgrade DowngradeErrorMessage="より新しいバージョンの [ProductName] が既にインストールされています。" />
+
+    <!--
+      Stop the running instance so upgrade/uninstall never leaves a locked .exe behind.
+      The tray app owns no top-level window, so WM_CLOSE alone is ignored: fall back to
+      terminating the process once the close message goes unanswered.
+    -->
+    <util:CloseApplication Id="CloseProxyToggle"
+                           Target="ProxyToggle.exe"
+                           CloseMessage="yes"
+                           TerminateProcess="0"
+                           RebootPrompt="no"
+                           Timeout="5" />
+
+    <Icon Id="ProxyToggleIcon" SourceFile="$(ExeSource)" />
+    <Property Id="ARPPRODUCTICON" Value="ProxyToggleIcon" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/rakkoyaku/proxy-toggle" />
+    <Property Id="ARPNOREPAIR" Value="1" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="ProxyToggle" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ShortcutFolder" Name="ProxyToggle" />
+    </StandardDirectory>
+
+    <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
+      <Component Id="MainExecutable" Guid="3a6c0f18-5d94-4b23-8e71-2f9b6c4a0d85">
+        <File Id="ProxyToggleExe" Name="ProxyToggle.exe" Source="$(ExeSource)" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <ComponentGroup Id="Shortcuts" Directory="ShortcutFolder">
+      <Component Id="StartMenuShortcut" Guid="b41e7d20-8c65-4f39-a0d2-7e5b1c93f8a4">
+        <Shortcut Id="StartMenuProxyToggle"
+                  Name="ProxyToggle"
+                  Description="システムプロキシをタスクトレイから切り替える"
+                  Target="[#ProxyToggleExe]"
+                  WorkingDirectory="INSTALLFOLDER" />
+        <RemoveFolder Id="RemoveShortcutFolder" On="uninstall" />
+        <!-- Per-user components need a HKCU key path. -->
+        <RegistryValue Root="HKCU" Key="Software\rakkoyaku\ProxyToggle"
+                       Name="Installed" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <Feature Id="Main" Title="ProxyToggle" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentGroupRef Id="Shortcuts" />
+    </Feature>
+
+    <!-- Offer to start the tray app straight after a successful install. -->
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="ProxyToggle を起動する" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <Property Id="WixShellExecTarget" Value="[#ProxyToggleExe]" />
+    <CustomAction Id="LaunchApplication"
+                  BinaryRef="Wix4UtilCA_X86"
+                  DllEntry="WixShellExec"
+                  Impersonate="yes"
+                  Return="ignore" />
+
+    <ui:WixUI Id="WixUI_Minimal" />
+    <UI>
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchApplication"
+               Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed" />
+    </UI>
+
+  </Package>
+</Wix>
