@@ -1,0 +1,4 @@
+Sources/HelperSource.swift
+*.app/
+.DS_Store
+build/

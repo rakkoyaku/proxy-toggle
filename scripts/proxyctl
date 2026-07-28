@@ -1,0 +1,59 @@
+#!/bin/bash
+# proxyctl — toggle the HTTP / HTTPS proxy of the currently active network service.
+#
+# Installed by ProxyToggle.app at /usr/local/bin/proxyctl, owned by root:wheel (755).
+# `status` needs no privileges; `on` / `off` / `toggle` re-exec themselves through
+# `sudo -n`, which succeeds without a password thanks to /etc/sudoers.d/proxyctl.
+#
+# NOTE: build.sh embeds this file verbatim into the app binary. It is the single
+# source of truth — edit here, not in the generated Sources/HelperSource.swift.
+
+set -uo pipefail
+export PATH=/usr/sbin:/usr/bin:/bin:/sbin
+
+SELF=/usr/local/bin/proxyctl
+NS=/usr/sbin/networksetup
+
+# Map the interface behind the default route (e.g. en0) back to the network
+# service name shown in System Settings (e.g. "Wi-Fi"), which is what
+# networksetup expects. Falls back to "Wi-Fi" when there is no default route.
+detect_service() {
+  local dev svc=""
+  dev=$(/sbin/route -n get default 2>/dev/null | awk '/interface:/{print $2; exit}')
+  if [ -n "$dev" ]; then
+    svc=$("$NS" -listnetworkserviceorder 2>/dev/null \
+          | grep -B1 "Device: ${dev})" | head -n1 | sed -E 's/^\(\*?[0-9]+\) //')
+  fi
+  [ -n "$svc" ] || svc="Wi-Fi"
+  printf '%s' "$svc"
+}
+
+SERVICE="${PROXY_SERVICE:-$(detect_service)}"
+
+field() { "$NS" "$1" "$SERVICE" 2>/dev/null | awk -F': ' -v k="^$2" '$0 ~ k {print $2; exit}'; }
+
+need_root() { [ "$(id -u)" -eq 0 ] || exec /usr/bin/sudo -n "$SELF" "$@"; }
+
+case "${1:-status}" in
+  service)
+    printf '%s\n' "$SERVICE"
+    ;;
+  status)
+    # service|httpEnabled|httpHost|httpPort|httpsEnabled|httpsHost|httpsPort
+    printf '%s|%s|%s|%s|%s|%s|%s\n' "$SERVICE" \
+      "$(field -getwebproxy Enabled)"       "$(field -getwebproxy Server)"       "$(field -getwebproxy Port)" \
+      "$(field -getsecurewebproxy Enabled)" "$(field -getsecurewebproxy Server)" "$(field -getsecurewebproxy Port)"
+    ;;
+  on|off)
+    need_root "$@"
+    "$NS" -setwebproxystate       "$SERVICE" "$1"
+    "$NS" -setsecurewebproxystate "$SERVICE" "$1"
+    ;;
+  toggle)
+    if [ "$(field -getwebproxy Enabled)" = "Yes" ]; then exec "$SELF" off; else exec "$SELF" on; fi
+    ;;
+  *)
+    echo "usage: proxyctl {on|off|toggle|status|service}" >&2
+    exit 2
+    ;;
+esac
